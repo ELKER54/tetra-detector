@@ -1,0 +1,63 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:          # Pi code and docs don't change the APK
+      - "pi/**"
+      - "docs/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write   # to publish the APK as a release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+      # The signing key lives in the SIGNING_KEY secret (base64), never in the repo.
+      # Without it the APK wouldn't install over the existing app, so stop here.
+      - name: Signing key
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::Add the SIGNING_KEY secret (Settings > Secrets and variables > Actions)"
+            exit 1
+          fi
+          echo "$SIGNING_KEY" | base64 -d > signing.keystore
+      - name: Build
+        run: gradle :app:testDebugUnitTest :app:assembleDebug --no-daemon
+      - name: Rename
+        run: cp app/build/outputs/apk/debug/app-debug.apk tetra-alert.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tetra-alert.apk
+          path: tetra-alert.apk
+      # One "latest" release, updated in place on each build, so the phone
+      # always has the same link. (Deleting and recreating it raced and left a draft.)
+      # Point the "latest" tag at this build, so the release never keeps an
+      # old commit (and whatever was in it) reachable.
+      - name: Move latest tag
+        run: |
+          git tag -f latest
+          git push -f origin refs/tags/latest
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest tetra-alert.apk --clobber
+            gh release edit latest --draft=false --notes "Built from ${GITHUB_SHA::7}"
+          else
+            gh release create latest tetra-alert.apk --target "$GITHUB_SHA" \
+              --title "Latest build" --notes "Built from ${GITHUB_SHA::7}"
+          fi
