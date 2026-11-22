@@ -1,5 +1,7 @@
 # TETRA detector
 
+This is just a project I wanted to play around with and see if I could get something working. Do not rely on this working for you at all.
+
 A Raspberry Pi and an RTL-SDR dongle listen to the UK Airwave (TETRA) uplink band, 380 to 385 MHz. When a nearby police, ambulance or fire radio transmits, an Android app beeps, shows how strong the signal is, and puts the same picture on Android Auto.
 
 It only detects that a radio is transmitting. It measures signal energy and burst timing, and never demodulates, decodes or records what is said. Check the law where you live before you use it, and don't fiddle with the phone while driving: the car screen has big buttons for the few things you need.
