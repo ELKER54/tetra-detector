@@ -77,7 +77,12 @@ CONFIG = {
     # What counts as a radio, and when to beep. Tuned on the first car runs.
     # TETRA radios transmit on a 56.67 ms frame. On real channels 84 % of gaps
     # between bursts in one dwell fitted that grid; on interference 5-12 %.
-    "frame_tol_ms": 4.0,          # gap counts as fitting if within this of the grid
+    # Real drives also showed many gaps a half-slot (7.08 ms) off whole frames,
+    # e.g. 49.6 ms: short bursts in the second half of a slot. Counting those
+    # as fitting stopped strong real radios (up to +42 dB) being muted as
+    # "unlocked", with a tighter tolerance so interference still fails.
+    "frame_tol_ms": 2.0,          # gap counts as fitting if within this of the grid
+    "frame_offsets_ms": (0.0, 7.083),   # whole frames, or whole frames +/- half a slot
     "lock_window_s": 120.0,       # how far back the fit is judged
     "unlock_min_gaps": 4,         # gaps needed before a channel can be ruled out
     "unlock_fit": 0.3,            # below this fraction fitting: not a radio
@@ -300,6 +305,14 @@ class Alerter:
     def _quiet(self, f):
         return any(lo <= f < hi for lo, hi in self.cfg["quiet_zones"])
 
+    def fits_grid(self, gap_ms):
+        """Does a gap between bursts fit the TETRA timing? Whole frames, or
+        whole frames plus or minus any of frame_offsets_ms (half-slots etc.)."""
+        r = gap_ms % FRAME_MS
+        tol = self.cfg["frame_tol_ms"]
+        return any(abs(r - o) <= tol or abs(r - (FRAME_MS - o)) <= tol
+                   for o in self.cfg["frame_offsets_ms"])
+
     def frame_state(self, f, now):
         cfg = self.cfg
         h = [g for g in self.gaps.get(f, []) if g[0] >= now - cfg["lock_window_s"]]
@@ -329,9 +342,7 @@ class Alerter:
                 dt = (b - a) * 1000.0
                 if dt < 20.0:
                     continue                       # two fragments of one burst
-                r = dt % FRAME_MS
-                self.gaps.setdefault(f, []).append(
-                    (b, min(r, FRAME_MS - r) <= cfg["frame_tol_ms"]))
+                self.gaps.setdefault(f, []).append((b, self.fits_grid(dt)))
         t0 = min(d["t"] for d in dets) if dets else 0.0
         n_ch = sum(1 for f in by_ch
                    if not self._quiet(f) or self.frame_state(f, t0) == "locked")

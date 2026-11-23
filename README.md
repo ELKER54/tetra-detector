@@ -21,7 +21,7 @@ Claude, Anthropic's AI model, wrote the code, the tests and the documentation, w
 
 The dongle sees 2.4 MHz at a time, so the Pi hops between three windows 1.65 MHz apart to cover the band, spending 0.8 s on each. For each window it runs a 2048-point FFT and a CFAR threshold (5 dB over the local noise), and keeps signals about one TETRA channel (25 kHz) wide whose bursts last as long as TETRA bursts do (5.7 or 12.8 ms).
 
-TETRA radios transmit on a fixed 56.667 ms frame grid, and most interference doesn't. A channel whose gaps stop fitting that grid is marked `unlocked` and stays silent. Three or more channels lighting up in one dwell counts as wideband interference, unless a channel already fits the grid.
+TETRA radios transmit on a fixed 56.667 ms frame grid (sometimes half a slot, 7.08 ms, off it), and most interference doesn't. A channel whose gaps stop fitting that grid is marked `unlocked` and stays silent. Three or more channels lighting up in one dwell counts as wideband interference, unless a channel already fits the grid.
 
 Each channel then becomes an episode. The Pi tells the phone about new activity after 30 s of quiet, when the strength band goes up, or when the signal jumps 10 dB. While a channel stays busy it also sends the current strength every 2 s, which drives the repeat beeps and "Tetra clear".
 

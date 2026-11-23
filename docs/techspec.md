@@ -66,7 +66,7 @@ Measured draw: Pi idle 260 mA, Pi flat out 730 mA, dongle 270-280 mA, total abou
    - `active`: ongoing episode, no new beep.
    - `quiet`: inside the quiet zone (383.85-384.20 MHz, a repeating false source) **and** not frame-locked. A locked channel in the zone alerts normally.
    - `wideband`: 3 or more channels in one dwell, so it's treated as interference.
-   - `unlocked`: the channel's gaps don't fit the TETRA 56.667 ms frame grid. That means fewer than 30 % fit, within ±4 ms, over at least 4 gaps in the last 120 s. Tuning data: real channels 84 % fit, interference 5-12 %.
+   - `unlocked`: the channel's gaps don't fit TETRA timing. A gap fits if it is within ±2 ms of a whole number of 56.667 ms frames, or of whole frames ± half a slot (7.083 ms). Fewer than 30 % fitting over at least 4 gaps in the last 120 s means unlocked. Tuning data: real channels 84 % fit, interference 5-12 %. The half-slot offset was added after a long drive showed strong real radios (up to +42 dB) muted as unlocked; replaying every saved drive, it cut strong signals wrongly muted from 13 to 2.
 7. **Episodes** per channel: `[last t, max dB, max tone]`. A beep is sent:
    - on new activity after a 30 s quiet gap;
    - when the tone band rises (weak → medium → STRONG);
